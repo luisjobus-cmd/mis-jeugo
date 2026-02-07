@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solo Leveling: Arise - Project Luis</title>
+  <style>
+    :root {
+      --blue: #00f2ff;
+      --purple: #7000ff;
+      --dark: #020205;
+      --gold: #ffcc00;
+      --red: #ff3e3e;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--dark);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
+      user-select: none;
+    }
+    canvas { display: block; image-rendering: auto; }
+
+    #hud {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .bar-container {
+      width: min(300px, 45vw);
+      height: 14px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid #333;
+      margin: 8px 0;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    #hp-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), #800000);
+      transition: width 0.2s;
+    }
+
+    #xp-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), #0044ff);
+      transition: width 0.1s;
+    }
+
+    #sys-info {
+      font-size: 14px;
+      letter-spacing: 1px;
+      color: var(--blue);
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    #cinema {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 40px;
+      text-align: center;
+      border: 4px double var(--blue);
+      margin: 20px;
+    }
+
+    #cinema-text {
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.8;
+      color: #fff;
+      max-width: 800px;
+      min-height: 160px;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      padding: 20px;
+    }
+
+    .window {
+      background: linear-gradient(145deg, #0a0a12, #000);
+      border: 2px solid var(--blue);
+      padding: 40px;
+      border-radius: 4px;
+      width: 85%;
+      max-width: 900px;
+      box-shadow: 0 0 50px rgba(0, 242, 255, 0.3);
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--blue);
+      color: var(--blue);
+      padding: 12px 30px;
+      cursor: pointer;
+      font-weight: bold;
+      text-transform: uppercase;
+      transition: 0.3s;
+    }
+
+    .btn:hover { background: var(--blue); color: #000; box-shadow: 0 0 20px var(--blue); }
+
+    #msg-popup {
+      position: fixed;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-weight: bold;
+      color: var(--blue);
+      opacity: 0;
+      transition: opacity 0.5s;
+      z-index: 300;
+      pointer-events: none;
+      text-align: center;
+      width: 90vw;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div id="sys-info">[ RANGO <span id="rank-val">E</span> ] - <span id="class-val">HUMANO</span></div>
+    <div style="font-size: 12px; margin: 5px 0;">LVL: <span id="lvl-val">1</span> | ORO: <span id="gold-val">0</span> | PUNTOS: <span id="pts-val">0</span> | SALA: <span id="room-val">1</span></div>
+    <div class="bar-container"><div id="hp-fill"></div></div>
+    <div class="bar-container"><div id="xp-fill"></div></div>
+    <div style="font-size: 11px; color: var(--gold); opacity: 0.7;">[WASD] MOVIMIENTO | [ESC] PAUSA / MENU</div>
+  </div>
+
+  <div id="cinema">
+    <div id="cinema-text"></div>
+    <button class="btn" style="margin-top: 40px;" onclick="closeCinema()">CONTINUAR DESPERTAR</button>
+  </div>
+
+  <div id="msg-popup">¡SISTEMA ACTUALIZADO!</div>
+
+  <div id="win-start" class="overlay">
+    <div class="window">
+      <h1 style="color:var(--blue); font-size: clamp(30px, 5vw, 45px); letter-spacing: 5px; margin: 0;">SOLO LEVELING</h1>
+      <p style="color:var(--purple); margin-bottom: 30px;">PROYECTO DESARROLLADO POR: LUIS (luisjobus)</p>
+
+      <div style="text-align: left; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+        <div style="background: rgba(255,255,255,0.05); padding: 15px;">
+          <h4 style="color:var(--blue); margin: 0 0 10px 0;">🎮 CONTROLES</h4>
+          • <b>WASD:</b> Movimiento<br>
+          • <b>Auto-Ataque:</b> Activo<br>
+          • <b>ESC:</b> Pausa / Reanudar<br>
+          • <b>Objetivo:</b> Sobrevivir y subir de rango
+        </div>
+        <div style="background: rgba(255,255,255,0.05); padding: 15px;">
+          <h4 style="color:var(--gold); margin: 0 0 10px 0;">🛠️ FICHA TÉCNICA</h4>
+          • <b>Lenguaje:</b> JavaScript (ES202x)<br>
+          • <b>Render:</b> HTML5 Canvas API<br>
+          • <b>Estilo:</b> Roguelike / Survivor<br>
+          • <b>Versión:</b> 2026.2.0 (Refined)
+        </div>
+      </div>
+      <br>
+      <button class="btn" onclick="startGame()">DESPERTAR</button>
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    let w = 0, h = 0;
+
+    const CHAPTERS = [
+      { title: 'CAPÍTULO 1: LA DOBLE MAZMORRA', story: 'Has despertado en un lugar olvidado. Los débiles mueren, pero tú... tú has recibido una invitación del Sistema. ¡Sobrevive o perece!', bg: '#050508', enemy: '#5a00ff' },
+      { title: 'CAPÍTULO 2: EL TRONO DE SANGRE', story: 'La sangre de tus enemigos alimenta tu sombra. El rango E ya no es suficiente. Es hora de demostrar quién manda en este desierto.', bg: '#150202', enemy: '#ff0044' },
+      { title: 'CAPÍTULO 3: EL MONARCA DE LAS SOMBRAS', story: 'El frío del vacío te rodea. Los soberanos tiemblan. Tu ejército de sombras está listo. ¡ALZAOS!', bg: '#020810', enemy: '#00f2ff' }
+    ];
+
+    const RANKS = ['E', 'D', 'C', 'B', 'A', 'S'];
+
+    const player = {
+      x: 0, y: 0, r: 22,
+      hp: 100, maxHp: 100,
+      xp: 0, nextXp: 100,
+      lvl: 1, gold: 0, pts: 0,
+      speed: 340, dmg: 20,
+      fireCooldown: 0,
+      invuln: 0,
+      inventory: [
+        { name: 'Daga Oxidada', dmg: 5, rarity: 'Común', eq: true },
+        { name: 'Daga de Rasaka', dmg: 45, rarity: 'Épica', eq: false },
+        { name: 'Cosechadora de Almas', dmg: 120, rarity: 'Legendaria', eq: false }
+      ],
+      class: 'Humano',
+      rank: 'E'
+    };
+
+    const state = {
+      enemies: [], bullets: [],
+      room: 1,
+      chapter: 0,
+      paused: true,
+      started: false,
+      keys: {},
+      cinematicTimer: null
+    };
+
+    function getEquippedWeapon() {
+      return player.inventory.find(w => w.eq) || { dmg: 0, name: 'Sin arma' };
+    }
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+      if (!state.started) {
+        player.x = w * 0.5;
+        player.y = h * 0.5;
+      } else {
+        player.x = Math.max(player.r, Math.min(w - player.r, player.x));
+        player.y = Math.max(player.r, Math.min(h - player.r, player.y));
+      }
+    }
+
+    function startGame() {
+      document.getElementById('win-start').style.display = 'none';
+      state.started = true;
+      state.paused = false;
+      player.x = w * 0.5;
+      player.y = h * 0.5;
+      spawnWave();
+      showPopup(`Despertaste como ${player.class}. ${CHAPTERS[state.chapter].title}`);
+    }
+
+    function spawnWave() {
+      state.enemies.length = 0;
+      const isBoss = state.room % 5 === 0;
+      const chap = CHAPTERS[state.chapter];
+      const powerMult = 1 + (state.room * 0.15) + (state.chapter * 2);
+
+      if (isBoss) {
+        state.enemies.push({
+          x: w * 0.5,
+          y: -120,
+          r: 90,
+          hp: 1000 * powerMult,
+          maxHp: 1000 * powerMult,
+          speed: 70 + (state.chapter * 30),
+          isBoss: true,
+          color: chap.enemy,
+          damage: 35
+        });
+        showPopup('¡ADVERTENCIA: JEFE DE ÁREA!');
+        return;
+      }
+
+      const count = Math.min(35, 5 + state.room);
+      for (let i = 0; i < count; i++) {
+        const side = Math.random() < 0.5;
+        state.enemies.push({
+          x: side ? -50 : w + 50,
+          y: Math.random() * h,
+          r: 14 + Math.random() * 12,
+          hp: 45 * powerMult,
+          speed: 100 + Math.random() * 80 + (state.chapter * 30),
+          isBoss: false,
+          color: chap.enemy,
+          damage: 10
+        });
+      }
+    }
+
+    function playCinema() {
+      state.paused = true;
+      const win = document.getElementById('cinema');
+      const txt = document.getElementById('cinema-text');
+      win.style.display = 'flex';
+      txt.textContent = '';
+
+      if (state.cinematicTimer) clearInterval(state.cinematicTimer);
+
+      const story = CHAPTERS[state.chapter].story;
+      let i = 0;
+      state.cinematicTimer = setInterval(() => {
+        txt.textContent += story.charAt(i);
+        i += 1;
+        if (i >= story.length) {
+          clearInterval(state.cinematicTimer);
+          state.cinematicTimer = null;
+        }
+      }, 24);
+    }
+
+    function closeCinema() {
+      document.getElementById('cinema').style.display = 'none';
+      state.paused = false;
+      spawnWave();
+    }
+
+    function updateRankAndClass() {
+      const rankIdx = Math.min(RANKS.length - 1, Math.floor((player.lvl - 1) / 5));
+      player.rank = RANKS[rankIdx];
+      if (player.lvl >= 15) player.class = 'Monarca de Sombras';
+      else if (player.lvl >= 10) player.class = 'Asesino';
+      else if (player.lvl >= 5) player.class = 'Cazador';
+      else player.class = 'Humano';
+    }
+
+    function nearestEnemy() {
+      if (state.enemies.length === 0) return null;
+      let nearest = state.enemies[0];
+      let best = Infinity;
+      for (const en of state.enemies) {
+        const d = (en.x - player.x) ** 2 + (en.y - player.y) ** 2;
+        if (d < best) {
+          best = d;
+          nearest = en;
+        }
+      }
+      return nearest;
+    }
+
+    function update(dt) {
+      if (state.paused || !state.started) return;
+
+      player.fireCooldown -= dt;
+      player.invuln -= dt;
+
+      const mx = (state.keys.d ? 1 : 0) - (state.keys.a ? 1 : 0);
+      const my = (state.keys.s ? 1 : 0) - (state.keys.w ? 1 : 0);
+      if (mx || my) {
+        const len = Math.hypot(mx, my);
+        player.x += (mx / len) * player.speed * dt;
+        player.y += (my / len) * player.speed * dt;
+      }
+
+      player.x = Math.max(player.r, Math.min(w - player.r, player.x));
+      player.y = Math.max(player.r, Math.min(h - player.r, player.y));
+
+      if (player.fireCooldown <= 0) {
+        const target = nearestEnemy();
+        if (target) {
+          const angle = Math.atan2(target.y - player.y, target.x - player.x);
+          state.bullets.push({
+            x: player.x,
+            y: player.y,
+            vx: Math.cos(angle) * 680,
+            vy: Math.sin(angle) * 680,
+            life: 1.1
+          });
+          player.fireCooldown = 0.12;
+        }
+      }
+
+      for (let i = state.bullets.length - 1; i >= 0; i--) {
+        const b = state.bullets[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.life -= dt;
+        if (b.life <= 0) {
+          state.bullets.splice(i, 1);
+          continue;
+        }
+
+        let hit = false;
+        for (let ei = state.enemies.length - 1; ei >= 0; ei--) {
+          const en = state.enemies[ei];
+          if (Math.hypot(b.x - en.x, b.y - en.y) < en.r + 2) {
+            en.hp -= player.dmg + getEquippedWeapon().dmg;
+            hit = true;
+            if (en.hp <= 0) {
+              player.xp += en.isBoss ? 500 : 20;
+              player.gold += en.isBoss ? 200 : 5;
+              state.enemies.splice(ei, 1);
+            }
+            break;
+          }
+        }
+
+        if (hit) state.bullets.splice(i, 1);
+      }
+
+      for (const en of state.enemies) {
+        const angle = Math.atan2(player.y - en.y, player.x - en.x);
+        en.x += Math.cos(angle) * en.speed * dt;
+        en.y += Math.sin(angle) * en.speed * dt;
+        if (Math.hypot(player.x - en.x, player.y - en.y) < player.r + en.r && player.invuln <= 0) {
+          player.hp -= en.damage * dt;
+          player.invuln = 0.1;
+        }
+      }
+
+      while (player.xp >= player.nextXp) {
+        player.xp -= player.nextXp;
+        player.lvl += 1;
+        player.pts += 2;
+        player.maxHp += 8;
+        player.hp = Math.min(player.maxHp, player.hp + 20);
+        player.nextXp = Math.round(player.nextXp * 1.42);
+        updateRankAndClass();
+        showPopup(`¡NIVEL ${player.lvl}! +2 puntos y vida aumentada.`);
+      }
+
+      if (state.enemies.length === 0) {
+        if (state.room % 5 === 0 && state.chapter < CHAPTERS.length - 1) {
+          state.chapter += 1;
+          playCinema();
+        }
+        state.room += 1;
+        if (!state.paused) spawnWave();
+      }
+
+      if (player.hp <= 0) {
+        alert('CONEXIÓN CON EL SISTEMA PERDIDA...');
+        location.reload();
+      }
+
+      updateHud();
+    }
+
+    function updateHud() {
+      document.getElementById('hp-fill').style.width = `${Math.max(0, (player.hp / player.maxHp) * 100)}%`;
+      document.getElementById('xp-fill').style.width = `${Math.max(0, (player.xp / player.nextXp) * 100)}%`;
+      document.getElementById('lvl-val').innerText = player.lvl;
+      document.getElementById('gold-val').innerText = player.gold;
+      document.getElementById('pts-val').innerText = player.pts;
+      document.getElementById('room-val').innerText = state.room;
+      document.getElementById('rank-val').innerText = player.rank;
+      document.getElementById('class-val').innerText = player.class;
+    }
+
+    function draw() {
+      const chap = CHAPTERS[state.chapter];
+      ctx.fillStyle = chap.bg;
+      ctx.fillRect(0, 0, w, h);
+
+      for (const en of state.enemies) {
+        ctx.fillStyle = en.color;
+        ctx.shadowBlur = en.isBoss ? 30 : 12;
+        ctx.shadowColor = en.color;
+        ctx.beginPath();
+        ctx.arc(en.x, en.y, en.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (en.isBoss) {
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(en.x - 60, en.y - en.r - 20, 120, 8);
+          ctx.fillStyle = 'white';
+          ctx.fillRect(en.x - 60, en.y - en.r - 20, (en.hp / en.maxHp) * 120, 8);
+        }
+      }
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'white';
+      for (const b of state.bullets) {
+        ctx.fillRect(b.x - 2, b.y - 2, 4, 4);
+      }
+
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#00f2ff';
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    function showPopup(text) {
+      const p = document.getElementById('msg-popup');
+      p.innerText = text;
+      p.style.opacity = 1;
+      setTimeout(() => {
+        p.style.opacity = 0;
+      }, 2200);
+    }
+
+    let lastTs = performance.now();
+    function loop(ts) {
+      const dt = Math.min(0.033, (ts - lastTs) / 1000);
+      lastTs = ts;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.onresize = resize;
+    window.onkeydown = (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'escape') {
+        if (!state.started) return;
+        state.paused = !state.paused;
+        showPopup(state.paused ? '⏸ Juego en pausa' : '▶ Reanudado');
+        return;
+      }
+      state.keys[k] = true;
+    };
+
+    window.onkeyup = (e) => {
+      state.keys[e.key.toLowerCase()] = false;
+    };
+
+    resize();
+    updateRankAndClass();
+    updateHud();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
